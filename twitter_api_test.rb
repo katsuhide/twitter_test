@@ -8,4 +8,11 @@ tw = Twitter::Client.new(
   oauth_token_secret: 'zkeDsGH8KNiYA5uPivKrxnhuPPGKM3u0xStolbbY'
 )
 
-tw.update("fuga");
+# つぶやき
+# tw.update("fuga");
+
+# タイムラインの取得
+timeline =tw.home_timeline(:count => 10)
+timeline.each{ |line|
+	puts line.text
+}
