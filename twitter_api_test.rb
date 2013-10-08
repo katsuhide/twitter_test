@@ -1,11 +1,16 @@
 # -*- encoding: utf-8 -*-
 require 'twitter'
+require 'yaml'
+
+## 設定の読み込み
+config = YAML.load_file("config.yml")
+config_p = config["production"]
 
 tw = Twitter::Client.new(
-  consumer_key: 'GhoK5Qq0NFkJSdYCjZRsNg',
-  consumer_secret: 'DBBBtivnR37VEDqVnmm7GvZIjN6xFpfnX1uumb7vk',
-  oauth_token: '982458823-0zibxIHw2T9xa3nTnelJf7uZnjEuCxWzarlSwFbK',
-  oauth_token_secret: 'zkeDsGH8KNiYA5uPivKrxnhuPPGKM3u0xStolbbY'
+  consumer_key: config_p["consumer_key"],
+  consumer_secret: config_p["consumer_secret"],
+  oauth_token: config_p["oauth_token"],
+  oauth_token_secret: config_p["oauth_token_secret"]
 )
 
 # つぶやき
