@@ -16,14 +16,14 @@ tw = Twitter::Client.new(
 ## search tweets
 def search_tweet(tw, keyword, since_id, fetch_size)
 	# tw.search(keyword, :count => fetch_size, :result_type => "recent", :since_id => since_id).results.reverse.map do |status|
-	result_map  = tw.search(keyword, :count => fetch_size, :result_type => "recent", :since_id => since_id).results.reverse.map 
+	result_map  = tw.search(keyword, :count => fetch_size, :result_type => "recent", :since_id => since_id).results.reverse.map
 	result_map.each{|status|
 		# Tweet ID, ユーザ名、Tweet本文、投稿日を1件づつ表示
 		puts status.id
 		puts status.created_at
 		puts "@" + status.from_user
 		puts status.text
-		print("\n")
+		print("n")
 		# 取得したTweet idをsince_idに格納
 		# ※古いものから新しい順(Tweet IDの昇順)に表示されるため、
 	 	#  最終的に、取得した結果の内の最新のTweet IDが格納され、
@@ -36,7 +36,7 @@ end
 ## データの検索
 since_id = 0
 counter = 0
-fetch_size = 10 
+fetch_size = 10
 keywords = ["PASSPO", "AKB48"]
 keywords.each{ |keyword|
 	after_since_id = search_tweet(tw, keyword, since_id, fetch_size)
