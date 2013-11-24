@@ -28,10 +28,10 @@ def print_tweets(result_map)
 		h.store("id", result.id)
 		h.store("time", result.created_at)
 		h.store("user", "@" + result.from_user)
-		# h.store("text", result.text)
+		h.store("text", result.text)
 		# hash => json
-		# j = JSON.pretty_generate(h)
-		j = JSON.generate(h)
+		j = JSON.pretty_generate(h)
+		# j = JSON.generate(h)
 		#  json => text file
 		open("tweet.json", "a") do |io|
 			JSON.dump(j, io)
@@ -41,8 +41,10 @@ end
 
 ## データの検索
 since_id = 0
-fetch_size = 10
-keywords = ["PASSPO", "AKB48"]
+fetch_size = 1
+f = open("anime_list.txt")
+keywords = f.readlines()
+# keywords = ["PASSPO", "AKB48"]
 keywords.each{ |keyword|
 	result_map = search_tweet(tw, keyword, since_id, fetch_size)
 	print_tweets(result_map)
