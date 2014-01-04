@@ -45,8 +45,6 @@ tw = Twitter::Client.new(
 ## execute to search tweet
 since_id = 0
 fetch_size = config_p['fetch_size']
-hoge = config_p['keyword_list_file_name']
-puts hoge
 f = open(config_p['keyword_list_file_name'])
 keywords = f.readlines()
 # keywords = ["PASSPO", "AKB48"]
@@ -54,3 +52,4 @@ keywords.each{ |keyword|
 	result_map = search_tweet(tw, keyword, since_id, fetch_size)
 	print_tweets(result_map)
 }
+
