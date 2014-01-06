@@ -1,30 +1,29 @@
 # -*- encoding: utf-8 -*-
 require 'twitter'
 require 'yaml'
-require 'json'
+require 'csv'
 
 ## read the configuration method
 def read_configuration
-	config = YAML.load_file("config.yml")
-	config_p = config["production"]
-	return config_p
+	configs = YAML.load_file("config.yml")
+	config = configs["production"]
+	return config
 end
 
 ## read the configuration
-config_p = read_configuration
+config = read_configuration
 
 ## create the twitter client
 tw = Twitter::Client.new(
-	 consumer_key: config_p["consumer_key"],
-	 consumer_secret: config_p["consumer_secret"],
-	 oauth_token: config_p["oauth_token"],
-	 oauth_token_secret: config_p["oauth_token_secret"]
+	 consumer_key: config["consumer_key"],
+	 consumer_secret: config["consumer_secret"],
+	 oauth_token: config["oauth_token"],
+	 oauth_token_secret: config["oauth_token_secret"]
 )
 
 ## search tweets method
-def search_tweets(tw, config_p, keyword)
-	# TODO : since_idは前回値を引き継ぐようにする
-	tweets  = tw.search(keyword, :count => config_p['fetch_size'], :result_type => "recent", :since_id => '0').results.reverse.map
+def search_tweets(tw, config, keyword, since_id)
+	tweets  = tw.search(keyword, :count => config['fetch_size'], :result_type => "recent", :since_id => since_id).results.reverse.map
       return tweets
 end
 
@@ -41,41 +40,67 @@ def print_tweets(tweets)
 	}
 end
 
+## get max since_id
+def get_max_id(since_id, tweets)
+	max_id = since_id
+	tweets.each{|tweet|
+		if tweet.id > max_id then
+			max_id = tweet.id
+		end
+	}
+	return max_id
+end
+
 ## count tweets
-def count_tweets(keyword, tweets)
+def count_tweets(keyword, since_id, tweets)
+	max_id = get_max_id(since_id, tweets)
 	count = tweets.size
-	tweets_number = [keyword, count]
-	return tweets_number
+	result_tweets = [keyword, max_id, count]
+	return result_tweets
 end
 
 ## output the tweets number to the text file
-def output_tweets_number(config_p, tweets_number)
-	open(config_p['output_file_name'], "w") do |io|
-		io.write(tweets_number)
-		io.write("\n")
+def output_result_tweets(config, result_tweets)
+	CSV.open(config['output_file_name'], "a") do |row|
+		day = Time.now
+		record = []
+		record .push(day)
+		record.push(result_tweets[0])
+		record.push(result_tweets[1])
+		record.push(result_tweets[2])
+		row << record
+	end
+end
+
+## update keyword list file
+def update_keyword_list_file(config, new_keyword_list)
+	CSV.open(config['keyword_list_file_name'],  "w") do |csv_row|
+		new_keyword_list.each{|list_row|
+			csv_row << list_row
+		}
 	end
 end
 
 ## get the keyword list
-# TODO : keywordとsince_idのセットでとってくるようにする
-# TODO : 改行を読み込んでしまっている
-f = open(config_p['keyword_list_file_name'])
-keywords = f.readlines()
+keyword_list_file = CSV.table(config['keyword_list_file_name'])
 
 ## loop each keywords
-keywords.each{|keyword|
+new_keyword_list = [["keyword", "since_id"]]
+keyword_list_file.each{|list|
+	keyword = list[0]
+	since_id = list[1]
 	## search tweets
-	tweets = search_tweets(tw, config_p, keyword)
+	tweets = search_tweets(tw, config, keyword, since_id)
 
 	## count tweets
-	tweets_number = count_tweets(keyword, tweets);
+	result_tweets = count_tweets(keyword, since_id, tweets);
 
 	## output result
-	puts tweets_number
-	output_tweets_number(config_p, tweets_number)
+	output_result_tweets(config, result_tweets)
 
+	## add keyword & since_id to the new file
+	new_keyword_list.push([keyword, result_tweets[1]])
 }
 
-
-
-puts 'end'
+## update keyword list file
+update_keyword_list_file(config, new_keyword_list)
