@@ -4,22 +4,12 @@ require 'yaml'
 require 'csv'
 
 ## read the configuration method
+# TODO : ここで認証がOauthアカウントが複数かえるようにする
 def read_configuration
 	configs = YAML.load_file("config.yml")
 	config = configs["production"]
 	return config
 end
-
-## read the configuration
-config = read_configuration
-
-## create the twitter client
-tw = Twitter::Client.new(
-	 consumer_key: config["consumer_key"],
-	 consumer_secret: config["consumer_secret"],
-	 oauth_token: config["oauth_token"],
-	 oauth_token_secret: config["oauth_token_secret"]
-)
 
 ## search tweets method
 def search_tweets(tw, config, keyword, since_id)
@@ -43,11 +33,17 @@ end
 ## get max since_id
 def get_max_id(since_id, tweets)
 	max_id = since_id
+	min_id = since_id
 	tweets.each{|tweet|
 		if tweet.id > max_id then
 			max_id = tweet.id
 		end
+		if tweet.id < min_id then
+			min_id = tweet.id
+		end
 	}
+	p "max_id:" + max_id.to_s
+	p "min_id:" + min_id.to_s
 	return max_id
 end
 
@@ -80,6 +76,18 @@ def update_keyword_list_file(config, new_keyword_list)
 		}
 	end
 end
+
+# START
+## read the configuration
+config = read_configuration
+
+## create the twitter client
+tw = Twitter::Client.new(
+	 consumer_key: config["consumer_key"],
+	 consumer_secret: config["consumer_secret"],
+	 oauth_token: config["oauth_token"],
+	 oauth_token_secret: config["oauth_token_secret"]
+)
 
 ## get the keyword list
 keyword_list_file = CSV.table(config['keyword_list_file_name'])
