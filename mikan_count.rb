@@ -3,7 +3,7 @@ require 'twitter'
 require 'yaml'
 require 'csv'
 
-## read the configuration method
+## 	read the configuration method
 # TODO : ここで認証がOauthアカウントが複数かえるようにする
 def read_configuration
 	configs = YAML.load_file("config.yml")
@@ -11,26 +11,46 @@ def read_configuration
 	return config
 end
 
-## search tweets method
-def search_tweets(tw, config, keyword, since_id)
-	tweets  = tw.search(keyword, :count => config['fetch_size'], :result_type => "recent", :since_id => since_id).results.reverse.map
-      return tweets
+## 	construct result
+def contruct_result(tweets)
+	result = []
+	tweets.each{|tweet|
+		h = Hash::new
+		h.store("id", tweet.id)
+		h.store("time", tweet.created_at)
+		result.push(h)
+	}
+      return result
 end
 
-## print result of the search tweets method
+## 	search tweets method
+def search_tweets(tw, fetch_size, keyword, since_id)
+	tweets  = tw.search(keyword, :count => fetch_size, :result_type => "recent", :since_id => since_id).results.reverse.map
+      # return tweets.to_a
+      return contruct_result(tweets)
+end
+
+## 	search tweets method
+def search_tweets_by_both(tw, fetch_size, keyword, since_id, max_id)
+	tweets  = tw.search(keyword, :count => fetch_size, :result_type => "recent", :since_id => since_id, :max_id => max_id).results.reverse.map
+      return contruct_result(tweets)
+end
+
+## 	print result of the search tweets method
 def print_tweets(tweets)
 	tweets.each{ |tweet|
-		## tweet  => hash
-		h = hash::new
-		h.store("since_id", tweet.id)
-		h.store("time", tweet.created_at)
-		h.store("user", "@" + tweet.from_user)
-		# h.store("text", tweet.text)
-		puts h
+		p tweet
+		# ## 	tweet  => hash
+		# h = Hash::new
+		# h.store("id", tweet.id)
+		# h.store("time", tweet.created_at)
+		# h.store("user", "@" + tweet.from_user)
+		# # h.store("text", tweet.text)
+		# puts h
 	}
 end
 
-## get max since_id
+## 	get max since_id
 def get_max_id(since_id, tweets)
 	max_id = since_id
 	min_id = since_id
@@ -62,7 +82,7 @@ def output_result_tweets(config, result_tweets)
 		record = []
 		record .push(day)
 		record.push(result_tweets[0])
-		record.push(result_tweets[1])
+		record.push(result_tweets[1]['id'])
 		record.push(result_tweets[2])
 		row << record
 	end
@@ -77,11 +97,45 @@ def update_keyword_list_file(config, new_keyword_list)
 	end
 end
 
-# START
-## read the configuration
-config = read_configuration
+## 	get min id of the tweets
+def get_min_id(tweets)
+	ids = []
+	tweets.each{|tweet|
+		ids.push(tweet['id'])
+	}
+	return ids.min
+end
 
-## create the twitter client
+## 	再帰検索
+def repeat_back_search(tw, count, keyword, since_id, min_id, base_tweets)
+	tweets = search_tweets_by_both(tw, count, keyword, since_id, min_id-1)
+	min_id = get_min_id(tweets)
+	base_tweets += tweets
+	if tweets.count != 0 then
+		base_tweets = repeat_back_search(tw, count, keyword, since_id, min_id, base_tweets)
+	end
+	return base_tweets
+end
+
+## 	since_id以降のTweetを全件取得する
+def search_all_tweets(tw, count, keyword, since_id)
+	## 直近のTweetを取得
+	tweets = search_tweets(tw, count, keyword, since_id)
+	## そこから前回取得結果まで遡る
+	if tweets.count != 0 then
+		min_id = get_min_id(tweets)
+		tweets = repeat_back_search(tw, count, keyword, since_id, min_id, tweets)
+	end
+	return tweets
+end
+
+
+# START
+## 	read the configuration
+config = read_configuration
+count = config["fetch_size"]
+
+## 	create the twitter client
 tw = Twitter::Client.new(
 	 consumer_key: config["consumer_key"],
 	 consumer_secret: config["consumer_secret"],
@@ -89,26 +143,34 @@ tw = Twitter::Client.new(
 	 oauth_token_secret: config["oauth_token_secret"]
 )
 
-## get the keyword list
+## 	get the keyword list
 keyword_list_file = CSV.table(config['keyword_list_file_name'])
 
-## loop each keywords
+## 	loop each keywords
 new_keyword_list = [["keyword", "since_id"]]
 keyword_list_file.each{|list|
 	keyword = list[0]
 	since_id = list[1]
-	## search tweets
-	tweets = search_tweets(tw, config, keyword, since_id)
 
-	## count tweets
-	result_tweets = count_tweets(keyword, since_id, tweets);
+	# ## 	search tweets
+	# tweets = search_tweets(tw, config['fetch_size'], keyword, since_id)
 
-	## output result
+	## 	get all tweets by filtering
+	tweets = search_all_tweets(tw, count, keyword, since_id).sort_by{|tweet| tweet['id']}
+
+	## 	count tweets
+	# result_tweets = count_tweets(keyword, since_id, tweets);
+
+	## 	create output data	<= [keyword, max_id, count]
+	result_tweets = [keyword, tweets[tweets.size-1], tweets.size]
+	puts result_tweets
+
+	## 	output result
 	output_result_tweets(config, result_tweets)
 
-	## add keyword & since_id to the new file
-	new_keyword_list.push([keyword, result_tweets[1]])
+	## 	add keyword & since_id to the new file
+	new_keyword_list.push([keyword, result_tweets[1]['id']])
 }
 
-## update keyword list file
+## 	update keyword list file
 update_keyword_list_file(config, new_keyword_list)
