@@ -50,41 +50,16 @@ def print_tweets(tweets)
 	}
 end
 
-# ## 	get max since_id
-# def get_max_id(since_id, tweets)
-# 	max_id = since_id
-# 	min_id = since_id
-# 	tweets.each{|tweet|
-# 		if tweet.id > max_id then
-# 			max_id = tweet.id
-# 		end
-# 		if tweet.id < min_id then
-# 			min_id = tweet.id
-# 		end
-# 	}
-# 	p "max_id:" + max_id.to_s
-# 	p "min_id:" + min_id.to_s
-# 	return max_id
-# end
-
-# ## count tweets
-# def count_tweets(keyword, since_id, tweets)
-# 	max_id = get_max_id(since_id, tweets)
-# 	count = tweets.size
-# 	result_tweets = [keyword, max_id, count]
-# 	return result_tweets
-# end
-
 ## output the tweets number to the text file
-def output_result_tweets(config, result_tweets)
+def output_result_tweets(config, keyword, since_id, latest_tweet, count)
 	CSV.open(config['output_file_name'], "a") do |row|
-		if !result_tweets[1].nil? then
+		if !latest_tweet.nil? then
 			day = Time.now
 			record = []
 			record .push(day)
-			record.push(result_tweets[0])
-			record.push(result_tweets[1]['id'])
-			record.push(result_tweets[2])
+			record.push(keyword)
+			record.push(latest_tweet['id'])
+			record.push(count)
 			row << record
 		end
 	end
@@ -123,6 +98,7 @@ def repeat_back_search(tw, count, keyword, since_id, min_id, base_tweets)
 	min_id = get_min_id(tweets)
 	base_tweets += tweets
 	if tweets.count != 0 then
+		puts "Count:" + tweets.size.to_s + ", Min_id: " + min_id.to_s + ", Max_id: " + get_max_id(tweets).to_s
 		base_tweets = repeat_back_search(tw, count, keyword, since_id, min_id, base_tweets)
 	end
 	return base_tweets
@@ -141,6 +117,10 @@ def search_all_tweets(tw, count, keyword, since_id)
 	return tweets
 end
 
+## 	Error handling when twitter api rate limit
+def swith_twitter_account()
+	puts "[TODO] Account Change"
+end
 
 # START
 ## 	read the configuration
@@ -163,27 +143,32 @@ new_keyword_list = [["keyword", "since_id"]]
 keyword_list_file.each{|list|
 	keyword = list[0]
 	since_id = list[1]
-
-	# ## 	search tweets
-	# tweets = search_tweets(tw, config['fetch_size'], keyword, since_id)
+	tweets = nil
 
 	## 	get all tweets by filtering
-	tweets = search_all_tweets(tw, count, keyword, since_id).sort_by{|tweet| tweet['id']}
+	begin
+		tweets = search_all_tweets(tw, count, keyword, since_id).sort_by{|tweet| tweet['id']}
 
-	## 	count tweets
-	# result_tweets = count_tweets(keyword, since_id, tweets);
+		## 	create output data	<= [keyword, max_id, count]
+		result_tweets = [keyword, tweets[tweets.size-1], tweets.size]
+		puts result_tweets
 
-	## 	create output data	<= [keyword, max_id, count]
-	result_tweets = [keyword, tweets[tweets.size-1], tweets.size]
-	puts result_tweets
+		## 	output result
+		latest_tweet = tweets[tweets.size-1]
+		output_result_tweets(config, keyword, since_id, latest_tweet, tweets.size)
 
-	## 	output result
-	output_result_tweets(config, result_tweets)
+	rescue Twitter::Error::TooManyRequests => tw_error
+		puts "[ERROR]" + tw_error.to_s + " during searching " + keyword
+		swith_twitter_account()
+	end
 
 	## 	add keyword & since_id to the new file
-	if !result_tweets[1].nil?
-		new_keyword_list.push([keyword, result_tweets[1]['id']])
+	if tweets.nil? || latest_tweet.nil? then
+	 	new_since_id = since_id
+	else
+	 	new_since_id = latest_tweet['id']
 	end
+	new_keyword_list.push([keyword, new_since_id])
 }
 
 ## 	update keyword list file
