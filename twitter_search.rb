@@ -84,6 +84,18 @@ def repeat_back_search(tw, count, keyword, since_id, min_id, base_tweets)
 	return base_tweets
 end
 
+def search_all_tweets(tw, count, keyword, since_id)
+	## 直近のTweetを取得
+	tweets = search_tweets(tw, count, keyword, since_id)
+	puts "Count:" + tweets.size.to_s + ", Min_id: " + get_min_id(tweets).to_s + ", Max_id: " + get_max_id(tweets).to_s
+	## そこから前回取得結果まで遡る
+	if tweets.count != 0 then
+		min_id = get_min_id(tweets)
+		tweets = repeat_back_search(tw, count, keyword, since_id, min_id, tweets)
+	end
+	return tweets
+end
+
 # START
 ## 	read the configuration
 config = read_configuration
@@ -98,28 +110,18 @@ tw = Twitter::Client.new(
 
 keyword = ARGV[0]
 since_id = ARGV[1]
+flag = ARGV[2].to_i
 count = 100
 puts keyword
 puts since_id
 
-puts "by since_id"
 tweets = search_tweets(tw, count, keyword, since_id)
 # print_tweets(tweets)
 puts "Count:" + tweets.size.to_s + ", Min_id: " + get_min_id(tweets).to_s + ", Max_id: " + get_max_id(tweets).to_s
 
-# puts "by both"
-def search_all_tweets(tw, count, keyword, since_id)
-	## 直近のTweetを取得
-	tweets = search_tweets(tw, count, keyword, since_id)
-	puts "Count:" + tweets.size.to_s + ", Min_id: " + get_min_id(tweets).to_s + ", Max_id: " + get_max_id(tweets).to_s
-	## そこから前回取得結果まで遡る
-	if tweets.count != 0 then
-		min_id = get_min_id(tweets)
-		tweets = repeat_back_search(tw, count, keyword, since_id, min_id, tweets)
-	end
-	return tweets
+if flag == 0 then
+	exit(0)
 end
-
 ## get all tweets by filtering
 # tweets = search_all_tweets(tw, count, keyword, since_id).sort_by{|tweet| tweet.id}
 tweets = search_all_tweets(tw, count, keyword, since_id).sort_by{|tweet| tweet['id']}
