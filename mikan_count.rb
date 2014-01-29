@@ -4,7 +4,6 @@ require 'yaml'
 require 'csv'
 
 ## 	read the configuration method
-# TODO : ここで認証がOauthアカウントが複数かえるようにする
 def read_configuration
 	configs = YAML.load_file("config.yml")
 	config = configs["production"]
