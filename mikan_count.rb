@@ -33,13 +33,6 @@ def search_tweets_by_both(keyword, since_id, max_id)
       return contruct_result(tweets)
 end
 
-## 	print result of the search tweets method
-def print_tweets(tweets)
-	tweets.each{ |tweet|
-		p tweet
-	}
-end
-
 ## output the tweets number to the text file
 def output_result_tweets(keyword, since_id, latest_tweet, count)
 	CSV.open(@config['output_file_name'], "a") do |row|
@@ -130,6 +123,8 @@ keyword_list_file.each{|list|
 	rescue Twitter::Error::TooManyRequests => tw_error
 		@logger.error(tw_error.to_s + " during searching " + keyword)
 		swith_twitter_account()
+	rescue => ex
+		@logger.error(ex)
 	ensure
 		@logger.info("END!!!" + "keyword: " + keyword + ", since_id: " + since_id.to_s)
 	end
