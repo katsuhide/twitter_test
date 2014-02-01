@@ -2,6 +2,7 @@
 require './twitter_api_util.rb'
 require 'yaml'
 require 'csv'
+require 'logger'
 
 ## 	read the configuration method
 def read_configuration
@@ -53,20 +54,24 @@ end
 ## 	print keyword list file
 def print_keywrod_list_file
 	keyword_list_file = CSV.table(@config['keyword_list_file_name'])
-	puts keyword_list_file
+	@logger.info("\r\n" + keyword_list_file.to_csv)
 end
 
 ## initialize
-@util = TwitterUtil.new()
+@logger = Logger.new("update_keyword_list.log", 5)
+@logger.level = Logger::DEBUG
+@util = TwitterUtil.new(@logger)
 @config = read_configuration
 mode = ARGV[0]
 new_keyword = ARGV[1]
 
 if mode.to_i ==1 then
 	## 	add new keyword to the keyword list file
+	@logger.info("add new keyword to the keyword list file")
 	add_keyword_lsit_file(new_keyword)
 else
 	## 	update keyword list
+	@logger.info("update keyword list")
 	update_keyword_list
 end
 
