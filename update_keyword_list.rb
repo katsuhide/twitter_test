@@ -53,10 +53,11 @@ end
 def print_keywrod_list_file
 	keyword_list_file = CSV.table(@config['keyword_list_file_name'])
 	@logger.info("\r\n" + keyword_list_file.to_csv)
+	puts keyword_list_file.to_csv
 end
 
 ## initialize
-@logger = Logger.new("update_keyword_list.log", 5)
+@logger = Logger.new(File.basename(__FILE__, File.extname(__FILE__)).to_s + ".log" , 5)
 @logger.level = Logger::DEBUG
 @util = TwitterUtil.new(@logger)
 @config = read_configuration

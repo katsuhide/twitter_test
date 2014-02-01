@@ -33,13 +33,12 @@ class TwitterUtil
 	## 	get available client
 	def get_available_client()
 		@in_use_index = get_next_client_index(@in_use_index)
-		p @in_use_index
 		return @config['oauth'][@in_use_index]
 	end
 
 	## 	create the twitter client
 	def create_client(oauth)
-		@tw = Twitter::Client.new(
+		@client = Twitter::Client.new(
 			 consumer_key: oauth["consumer_key"],
 			 consumer_secret: oauth["consumer_secret"],
 			 oauth_token: oauth["oauth_token"],
@@ -60,7 +59,9 @@ class TwitterUtil
 			h.store("id", tweet.id)
 			h.store("time", tweet.created_at)
 			h.store("user", "@" + tweet.from_user)
-			h.store("text", tweet.text)
+			if @logger.level == Logger::DEBUG then
+				h.store("text", tweet.text)
+			end
 			@logger.info(p h)
 		end
 	end
@@ -74,12 +75,12 @@ class TwitterUtil
 
 	## 	get twitter client
 	def get_client
-		return @tw
+		return @client
 	end
 
 	##  	search latest tweet
 	def search_tweet(keyword)
-		tweet =  @tw.search(keyword, :count => 1, :result_type => "recent").results.reverse.map.first
+		tweet =  @client.search(keyword, :count => 1, :result_type => "recent").results.reverse.map.first
 		print_tweet(tweet)
 		return tweet
 	end
@@ -103,15 +104,15 @@ class TwitterUtil
 	end
 
 	## 	search tweets method
-	def search_tweets(count, keyword, since_id)
-		tweets = @tw.search(keyword, :count => count, :result_type => "recent", :since_id => since_id).results.reverse.map
+	def search_tweets(fetch_size, keyword, since_id)
+		tweets = @client.search(keyword, :count => fetch_size, :result_type => "recent", :since_id => since_id).results.reverse.map
 		print_tweets(tweets)
 		return  tweets
 	end
 
 	## 	search tweets method by since_id and max_id
-	def search_tweets_by_both(count, keyword, since_id, max_id)
-		return @tw.search(keyword, :count => count, :result_type => "recent", :since_id => since_id, :max_id => max_id).results.reverse.map
+	def search_tweets_by_both(fetch_size, keyword, since_id, max_id)
+		return @client.search(keyword, :count => fetch_size, :result_type => "recent", :since_id => since_id, :max_id => max_id).results.reverse.map
 	end
 
 end
