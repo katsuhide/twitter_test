@@ -53,16 +53,13 @@ class TwitterUtil
 
 	## 	print tweet
 	def print_tweet(tweet)
-		@logger.debug(tweet)
 		if !tweet.nil? then
 			h = Hash::new
 			h.store("id", tweet.id)
 			h.store("time", tweet.created_at)
 			h.store("user", "@" + tweet.from_user)
-			if @logger.level == Logger::DEBUG then
-				h.store("text", tweet.text)
-			end
-			@logger.info(p h)
+			h.store("text", tweet.text)
+			@logger.debug(p h)
 		end
 	end
 
@@ -112,7 +109,9 @@ class TwitterUtil
 
 	## 	search tweets method by since_id and max_id
 	def search_tweets_by_both(fetch_size, keyword, since_id, max_id)
-		return @client.search(keyword, :count => fetch_size, :result_type => "recent", :since_id => since_id, :max_id => max_id).results.reverse.map
+		tweets =  @client.search(keyword, :count => fetch_size, :result_type => "recent", :since_id => since_id, :max_id => max_id).results.reverse.map
+		print_tweets(tweets)
+		return  tweets
 	end
 
 end
