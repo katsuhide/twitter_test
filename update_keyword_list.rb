@@ -6,9 +6,7 @@ require 'logger'
 
 ## 	read the configuration method
 def read_configuration
-	configs = YAML.load_file("config.yml")
-	config = configs["production"]
-	return config
+	return YAML.load_file("config.yml")
 end
 
 ## 	update keyword list file

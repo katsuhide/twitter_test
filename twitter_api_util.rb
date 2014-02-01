@@ -6,8 +6,8 @@ require 'logger'
 class TwitterUtil
 	## 	initialize
 	def initialize(log = nil)
-		config = read_configuration
-		create_client(config)
+		read_configuration
+		create_client(get_available_client())
 		@logger = log
 		if @logger.nil? then
 			@logger = Logger.new(STDOUT)
@@ -18,9 +18,38 @@ class TwitterUtil
 
 	## 	read the configuration method
 	def read_configuration
-		configs = YAML.load_file("config.yml")
-		config = configs["production"]
-		return config
+		@config = YAML.load_file("config.yml")
+		return @config
+	end
+
+	## 	get next index of twitter client
+	def get_next_client_index(in_use_index)
+		current_index = in_use_index.nil? ? -1: in_use_index
+		oauth = @config['oauth']
+		client_num = oauth.count
+		return current_index < (client_num - 1) ? current_index + 1 : current_index + 1 - client_num
+	end
+
+	## 	get available client
+	def get_available_client()
+		@in_use_index = get_next_client_index(@in_use_index)
+		p @in_use_index
+		return @config['oauth'][@in_use_index]
+	end
+
+	## 	create the twitter client
+	def create_client(oauth)
+		@tw = Twitter::Client.new(
+			 consumer_key: oauth["consumer_key"],
+			 consumer_secret: oauth["consumer_secret"],
+			 oauth_token: oauth["oauth_token"],
+			 oauth_token_secret: oauth["oauth_token_secret"]
+		)
+	end
+
+	## 	change twitter client
+	def change_client
+		create_client(get_available_client())
 	end
 
 	## 	print tweet
@@ -41,16 +70,6 @@ class TwitterUtil
 		tweets.each{ |tweet|
 			print_tweet(tweet)
 		}
-	end
-
-	## 	create the twitter client
-	def create_client(config)
-		@tw = Twitter::Client.new(
-			 consumer_key: config["consumer_key"],
-			 consumer_secret: config["consumer_secret"],
-			 oauth_token: config["oauth_token"],
-			 oauth_token_secret: config["oauth_token_secret"]
-		)
 	end
 
 	## 	get twitter client
